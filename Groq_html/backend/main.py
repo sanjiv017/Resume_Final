@@ -188,6 +188,11 @@ async def chat_with_candidate(chat_req: ChatMessage, token: str = Depends(verify
     Answer questions truthfully based ONLY on the Candidate Resume and Job Description.
     If the resume does not mention something, explicitly state that it is not documented.
 
+    IMPORTANT FORMATTING RULES:
+    - Use clean bullet points and concise paragraphs.
+    - DO NOT format answers as Markdown tables or ASCII grids.
+    - Keep output easy to read in a narrow mobile chat drawer.
+
     [JOB DESCRIPTION]
     {cand['jd_text'][:4000]}
 
