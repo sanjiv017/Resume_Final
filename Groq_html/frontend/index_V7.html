@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TalentFilter Pro Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    input, textarea, select, button { font-size: 16px; }
+    ::-webkit-scrollbar { width: 6px; }
+    .dark ::-webkit-scrollbar-track { background: #0f172a; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+    details[open] summary .arrow-icon {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- AUTH MODAL -->
+  <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto text-xl shadow-lg shadow-indigo-600/30 text-white">
+          <svg class="w-6 h-6 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">TalentFilter Pro</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Sign in to access candidate assessment</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Username</label>
+          <input type="text" id="username" value="admin" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Password</label>
+          <input type="password" id="password" value="recruit123" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition">
+        </div>
+        <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] py-3 rounded-lg font-semibold transition shadow-md shadow-indigo-600/20 text-white">
+          Sign In
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/60 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center justify-between transition-colors">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-md shadow-indigo-600/20">TF</div>
+      <span class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">TalentFilter <span class="text-indigo-600 dark:text-indigo-400">Intelligence</span></span>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <!-- Dark/Light Mode Switcher -->
+      <button onclick="toggleTheme()" id="themeToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:border-indigo-500 transition shadow-sm" title="Toggle Theme">
+        <span id="themeIconContainer" class="text-indigo-500 text-sm">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </span>
+        <span id="themeText" class="font-medium hidden sm:inline">Dark</span>
+      </button>
+
+      <div id="userBadge" class="hidden flex items-center gap-3">
+        <span class="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-3 rounded-full text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 inline-block text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Admin Recruiter
+        </span>
+        <button onclick="handleLogout()" title="Log Out" class="text-xs text-slate-400 hover:text-rose-500 p-1.5 transition">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+    
+    <!-- LEFT PANEL: Inputs, Weights & Shortlist Selection -->
+    <div class="lg:col-span-4 space-y-6">
+      
+      <!-- Upload & Multi-Batch Accumulator Card -->
+      <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-5 shadow-sm space-y-4 transition-colors">
+        <h3 class="font-bold text-sm flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg> Document Inputs
+        </h3>
+
+        <!-- Job Description Accumulator -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Target Job Description</label>
+            <span id="jdStatusText" class="text-[11px] text-slate-500">Not selected</span>
+          </div>
+          
+          <label class="flex items-center justify-center gap-2 w-full py-2 px-3 border border-slate-300 dark:border-slate-700 border-dashed rounded-lg cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition text-xs text-slate-500 dark:text-slate-400">
+            <svg class="w-4 h-4 inline-block text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Choose / Replace JD
+            <input type="file" id="jdFileInput" accept=".pdf,.docx,.txt" onchange="handleJdSelection(this)" class="hidden">
+          </label>
+
+          <!-- JD Pill Card -->
+          <div id="jdSelectedPill" class="hidden flex items-center justify-between bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-lg text-xs">
+            <div class="flex items-center gap-2 truncate pr-2">
+              <svg class="w-4 h-4 inline-block text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span id="jdFileName" class="text-slate-800 dark:text-slate-200 truncate font-medium">JD.pdf</span>
+            </div>
+            <button onclick="removeJdFile()" class="text-slate-400 hover:text-rose-500 p-1 transition" title="Remove JD">
+              <svg class="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumes Multi-Batch Accumulator -->
+        <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700/60">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Candidate Resumes</label>
+            <div class="flex items-center gap-2">
+              <span id="resumesCountBadge" class="text-[11px] bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-transparent px-2 py-0.5 rounded text-indigo-600 dark:text-indigo-300 font-bold">0 added</span>
+              <button onclick="clearAllResumes()" class="text-[10px] text-slate-500 dark:text-slate-400 hover:text-rose-500 underline">Clear All</button>
+            </div>
+          </div>
+
+          <!-- Add Button (Can be clicked repeatedly) -->
+          <label class="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-300 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-700/70 rounded-lg cursor-pointer transition text-xs font-semibold text-slate-700 dark:text-slate-200">
+            <svg class="w-4 h-4 inline-block text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg> Add More Resumes (Select Multi)
+            <input type="file" id="resumeBatchInput" multiple accept=".pdf,.docx,.txt" onchange="handleResumeBatchSelection(this)" class="hidden">
+          </label>
+
+          <!-- Persistent Resume File Badges List -->
+          <div id="resumeListContainer" class="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+            <div id="emptyResumePlaceholder" class="text-[11px] text-slate-500 text-center py-3 italic bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-slate-200 dark:border-slate-800">
+              No resumes selected yet. Add files one-by-one or in batches.
+            </div>
+          </div>
+        </div>
+
+        <!-- Top N Selection Slider -->
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-700/60 space-y-1.5">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-slate-700 dark:text-slate-300">Candidates to Shortlist:</span>
+            <span id="topNLabel" class="text-indigo-600 dark:text-indigo-400 font-bold">Top 5</span>
+          </div>
+          <input type="range" id="topNSlider" min="1" max="10" value="5" oninput="updateTopN(this.value)" class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg">
+          <div class="flex justify-between text-[11px] text-slate-500">
+            <span>1</span>
+            <span id="maxResumeSpan">Max: 10</span>
+          </div>
+        </div>
+
+        <button id="runBtn" onclick="runShortlisting()" class="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition py-3 rounded-xl font-bold text-sm shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 text-white">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg> Run AI Assessment
+        </button>
+      </div>
+
+      <!-- Real-time Dynamic Weights Sliders with Sum Tracking -->
+      <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-5 shadow-sm space-y-3.5 transition-colors">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+            <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg> Metric Weights
+          </h3>
+          <div class="flex items-center gap-2">
+            <button onclick="autoNormalizeWeights()" class="text-[11px] bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 px-2 py-0.5 rounded transition">Auto 100%</button>
+            <button onclick="resetWeights()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline">Reset</button>
+          </div>
+        </div>
+
+        <!-- Total Weight Summary Box -->
+        <div class="bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 space-y-1.5 transition-colors">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-slate-600 dark:text-slate-400">Total Allocated Weight:</span>
+            <span id="totalWeightBadge" class="text-emerald-600 dark:text-emerald-400 font-bold">100%</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="totalWeightProgressBar" class="h-full bg-emerald-500 transition-all duration-200" style="width: 100%;"></div>
+          </div>
+          <p id="weightWarningMsg" class="text-[10px] text-slate-500 dark:text-slate-400">Locked at 100% capacity.</p>
+        </div>
+        
+        <div id="slidersContainer" class="space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Ranked Candidates in Accordion Card Format -->
+    <div class="lg:col-span-8 space-y-4">
+      
+      <!-- Progress Bar Banner -->
+      <div id="processingBanner" class="hidden bg-white dark:bg-slate-800/90 border border-indigo-300 dark:border-indigo-500/40 rounded-2xl p-4 shadow-lg space-y-2.5 transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-4 h-4 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+            <span id="processingTitle" class="text-xs font-semibold text-slate-800 dark:text-slate-200">Evaluating candidates with LLM...</span>
+          </div>
+          <span id="processingPercent" class="text-xs font-bold text-indigo-600 dark:text-indigo-400">0%</span>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-900 h-2 rounded-full overflow-hidden">
+          <div id="processingProgressBar" class="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-300" style="width: 0%;"></div>
+        </div>
+        <p id="processingDetail" class="text-[11px] text-slate-500 dark:text-slate-400">Extracting texts and executing 10-metric rubrics...</p>
+      </div>
+
+      <!-- Success Status Banner -->
+      <div id="statusBanner" class="hidden bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between shadow-sm transition-colors">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div>
+            <h4 id="statusTitle" class="text-xs font-bold text-emerald-800 dark:text-emerald-300">Assessment Finished Successfully</h4>
+            <p id="statusSubtitle" class="text-[11px] text-emerald-700 dark:text-slate-400">Processed resumes against Job Description.</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('statusBanner').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm p-1">&times;</button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+          <svg class="w-5 h-5 inline-block text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg> Shortlisted Candidates
+        </h3>
+        <span id="candidateCount" class="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-full text-slate-600 dark:text-slate-400 shadow-sm">0 evaluated</span>
+      </div>
+
+      <!-- Result Cards Container -->
+      <div id="resultsList" class="space-y-4">
+        <div class="border-2 border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-transparent rounded-2xl p-12 text-center text-slate-400 dark:text-slate-500">
+          <svg class="w-12 h-12 mx-auto mb-3 opacity-40 inline-block" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <p>Upload a Job Description and Resumes to view automated ranking.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT DRAWER -->
+  <div id="chatDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
+    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/60">
+      <div>
+        <h4 id="chatCandidateName" class="font-bold text-sm text-slate-800 dark:text-white">Candidate Chat</h4>
+        <span class="text-xs text-indigo-600 dark:text-indigo-400">AI Resume Interrogation</span>
+      </div>
+      <button onclick="closeChat()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 text-xl leading-none">&times;</button>
+    </div>
+
+    <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+      <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-600/50 leading-relaxed text-slate-600 dark:text-slate-300">
+        Ask anything regarding this candidate's history, projects, gap years, or technical alignment with the JD.
+      </div>
+    </div>
+
+    <div class="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex gap-2">
+      <input type="text" id="chatInput" placeholder="e.g. Did they lead any teams or build CI/CD?" onkeydown="if(event.key==='Enter') sendChatMessage()" class="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 outline-none">
+      <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition shadow-sm">
+        <svg class="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://ai-applications-3.onrender.com/";
+    let AUTH_TOKEN = localStorage.getItem("tf_token") || null;
+    let activeCandidates = [];
+    let currentChatCandidateId = null;
+    let selectedTopN = 5;
+
+    let accumulatedJdFile = null;
+    let accumulatedResumeFiles = [];
+
+    // --- Exactly Configured Default Weights (Descending Order, Sum = 100%) ---
+    const defaultWeights = {
+      "Hard Skill Alignment": 0.40,
+      "Experience Relevance": 0.30,
+      "Tool & Platform Stack": 0.15,
+      "Seniority & Scope": 0.05,
+      "Educational Qualification": 0.05,
+      "Domain Experience": 0.05,
+      "Soft Skills & Leadership": 0.00,
+      "Quantifiable Impact": 0.00,
+      "Career Continuity": 0.00,
+      "Communication Quality": 0.00
+    };
+    let currentWeights = { ...defaultWeights };
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem("tf_theme") || "dark";
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        updateThemeBtnUI(true);
+      } else {
+        document.documentElement.classList.remove("dark");
+        updateThemeBtnUI(false);
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("tf_theme", isDark ? "dark" : "light");
+      updateThemeBtnUI(isDark);
+      renderCards();
+    }
+
+    function updateThemeBtnUI(isDark) {
+      const container = document.getElementById("themeIconContainer");
+      const text = document.getElementById("themeText");
+      if (isDark) {
+        container.innerHTML = `<svg class="w-4 h-4 inline-block text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`;
+        text.textContent = "Dark";
+      } else {
+        container.innerHTML = `<svg class="w-4 h-4 inline-block text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`;
+        text.textContent = "Light";
+      }
+    }
+
+    window.onload = () => {
+      initTheme();
+      if (AUTH_TOKEN) {
+        document.getElementById("authModal").classList.add("hidden");
+        document.getElementById("userBadge").classList.remove("hidden");
+      }
+      renderSliders();
+      updateWeightTotalDisplay();
+    };
+
+    function getScoreTheme(score) {
+      if (score > 80) {
+        return {
+          badgeBg: "bg-emerald-600 text-white",
+          text: "text-emerald-600 dark:text-emerald-400",
+          bar: "bg-emerald-500"
+        };
+      } else if (score >= 65) {
+        return {
+          badgeBg: "bg-amber-500 text-white",
+          text: "text-amber-600 dark:text-amber-400",
+          bar: "bg-amber-400"
+        };
+      } else {
+        return {
+          badgeBg: "bg-rose-600 text-white",
+          text: "text-rose-600 dark:text-rose-400",
+          bar: "bg-rose-500"
+        };
+      }
+    }
+
+    function handleJdSelection(input) {
+      if (input.files && input.files[0]) {
+        accumulatedJdFile = input.files[0];
+        document.getElementById("jdFileName").textContent = accumulatedJdFile.name;
+        document.getElementById("jdSelectedPill").classList.remove("hidden");
+        document.getElementById("jdStatusText").textContent = "1 selected";
+      }
+      input.value = "";
+    }
+
+    function removeJdFile() {
+      accumulatedJdFile = null;
+      document.getElementById("jdSelectedPill").classList.add("hidden");
+      document.getElementById("jdStatusText").textContent = "Not selected";
+    }
+
+    function handleResumeBatchSelection(input) {
+      if (input.files && input.files.length > 0) {
+        for (let i = 0; i < input.files.length; i++) {
+          const file = input.files[i];
+          const exists = accumulatedResumeFiles.some(f => f.name === file.name && f.size === file.size);
+          if (!exists) {
+            accumulatedResumeFiles.push(file);
+          }
+        }
+        renderResumeBadges();
+      }
+      input.value = "";
+    }
+
+    function removeSingleResume(index) {
+      accumulatedResumeFiles.splice(index, 1);
+      renderResumeBadges();
+    }
+
+    function clearAllResumes() {
+      accumulatedResumeFiles = [];
+      renderResumeBadges();
+    }
+
+    function renderResumeBadges() {
+      const container = document.getElementById("resumeListContainer");
+      const badge = document.getElementById("resumesCountBadge");
+      const slider = document.getElementById("topNSlider");
+      const maxSpan = document.getElementById("maxResumeSpan");
+      const count = accumulatedResumeFiles.length;
+
+      badge.textContent = `${count} added`;
+
+      if (count === 0) {
+        container.innerHTML = `
+          <div id="emptyResumePlaceholder" class="text-[11px] text-slate-500 text-center py-3 italic bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-slate-200 dark:border-slate-800">
+            No resumes selected yet. Add files one-by-one or in batches.
+          </div>
+        `;
+        slider.max = 10;
+        maxSpan.textContent = "Max: 10";
+        updateTopN(slider.value);
+        return;
+      }
+
+      container.innerHTML = "";
+      accumulatedResumeFiles.forEach((file, idx) => {
+        const item = document.createElement("div");
+        item.className = "flex items-center justify-between bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 px-2.5 py-1.5 rounded-lg text-xs hover:border-slate-300 dark:hover:border-slate-600 transition";
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate pr-2">
+            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">#${idx + 1}</span>
+            <span class="text-slate-800 dark:text-slate-200 truncate font-medium">${file.name}</span>
+            <span class="text-[10px] text-slate-500 shrink-0">(${(file.size / 1024).toFixed(0)} KB)</span>
+          </div>
+          <button onclick="removeSingleResume(${idx})" class="text-slate-400 hover:text-rose-500 p-1 transition" title="Remove file">
+            <svg class="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+        container.appendChild(item);
+      });
+
+      slider.max = count;
+      maxSpan.textContent = `Max: ${count}`;
+      if (parseInt(slider.value) > count) {
+        slider.value = count;
+      }
+      updateTopN(slider.value);
+    }
+
+    function updateTopN(val) {
+      selectedTopN = parseInt(val);
+      document.getElementById("topNLabel").textContent = `Top ${selectedTopN}`;
+      recalculateRankings();
+    }
+
+    function renderSliders() {
+      const container = document.getElementById("slidersContainer");
+      container.innerHTML = "";
+      
+      // Sort metrics descending by their weight value
+      const sortedMetrics = Object.keys(currentWeights).sort((a, b) => currentWeights[b] - currentWeights[a]);
+
+      sortedMetrics.forEach(metric => {
+        const row = document.createElement("div");
+        row.className = "space-y-1";
+        const valPct = Math.round(currentWeights[metric] * 100);
+        row.innerHTML = `
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-700 dark:text-slate-300 truncate font-medium">${metric}</span>
+            <span id="label-${slug(metric)}" class="font-bold text-indigo-600 dark:text-indigo-400">${valPct}%</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="${valPct}" 
+            oninput="handleWeightSliderChange('${metric}', this.value)" 
+            class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg">
+        `;
+        container.appendChild(row);
+      });
+      updateWeightTotalDisplay();
+    }
+
+    function slug(str) { return str.replace(/[^a-zA-Z0-9]/g, "_"); }
+
+    function handleWeightSliderChange(changedMetric, requestedVal) {
+      let newVal = parseInt(requestedVal) / 100;
+      
+      let otherSum = 0;
+      Object.keys(currentWeights).forEach(k => {
+        if (k !== changedMetric) otherSum += currentWeights[k];
+      });
+
+      const maxAllowed = Math.max(0, 1.0 - otherSum);
+      if (newVal > maxAllowed) {
+        newVal = Math.round(maxAllowed * 100) / 100;
+      }
+
+      currentWeights[changedMetric] = newVal;
+      renderSliders();
+      recalculateRankings();
+    }
+
+    function updateWeightTotalDisplay() {
+      const total = Math.round(Object.values(currentWeights).reduce((a, b) => a + b, 0) * 100);
+      const badge = document.getElementById("totalWeightBadge");
+      const bar = document.getElementById("totalWeightProgressBar");
+      const warning = document.getElementById("weightWarningMsg");
+
+      badge.textContent = `${total}%`;
+      bar.style.width = `${Math.min(total, 100)}%`;
+
+      if (total === 100) {
+        badge.className = "text-emerald-600 dark:text-emerald-400 font-bold";
+        bar.className = "h-full bg-emerald-500 transition-all duration-200";
+        warning.textContent = "Exact 100% allocation applied.";
+        warning.className = "text-[10px] text-emerald-600 dark:text-emerald-400/80";
+      } else if (total < 100) {
+        badge.className = "text-amber-600 dark:text-amber-400 font-bold";
+        bar.className = "h-full bg-amber-500 transition-all duration-200";
+        warning.textContent = `${100 - total}% remaining. Click 'Auto 100%' to fill.`;
+        warning.className = "text-[10px] text-amber-600 dark:text-amber-400/80";
+      } else {
+        badge.className = "text-rose-600 dark:text-rose-400 font-bold";
+        bar.className = "h-full bg-rose-500 transition-all duration-200";
+        warning.textContent = "Exceeded 100%! Please decrease some weights.";
+        warning.className = "text-[10px] text-rose-600 dark:text-rose-400";
+      }
+    }
+
+    function autoNormalizeWeights() {
+      const sum = Object.values(currentWeights).reduce((a, b) => a + b, 0) || 1;
+      let runningSum = 0;
+      const keys = Object.keys(currentWeights);
+      
+      keys.forEach((k, i) => {
+        if (i === keys.length - 1) {
+          currentWeights[k] = Math.max(0, Math.round((1.0 - runningSum) * 100) / 100);
+        } else {
+          const norm = Math.round((currentWeights[k] / sum) * 100) / 100;
+          currentWeights[k] = norm;
+          runningSum += norm;
+        }
+      });
+      renderSliders();
+      recalculateRankings();
+    }
+
+    function resetWeights() {
+      currentWeights = { ...defaultWeights };
+      renderSliders();
+      recalculateRankings();
+    }
+
+    async function handleLogin() {
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        if (!res.ok) throw new Error("Invalid credentials");
+        const data = await res.json();
+        AUTH_TOKEN = data.token;
+        localStorage.setItem("tf_token", AUTH_TOKEN);
+        document.getElementById("authModal").classList.add("hidden");
+        document.getElementById("userBadge").classList.remove("hidden");
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("tf_token");
+      location.reload();
+    }
+
+    async function runShortlisting() {
+      if (!accumulatedJdFile) {
+        return alert("Please select a Job Description first.");
+      }
+      if (accumulatedResumeFiles.length === 0) {
+        return alert("Please add at least 1 Candidate Resume.");
+      }
+
+      const btn = document.getElementById("runBtn");
+      const banner = document.getElementById("processingBanner");
+      const statusBanner = document.getElementById("statusBanner");
+      const pBar = document.getElementById("processingProgressBar");
+      const pPercent = document.getElementById("processingPercent");
+      const pTitle = document.getElementById("processingTitle");
+      const pDetail = document.getElementById("processingDetail");
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="inline-block animate-spin mr-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></span> Processing...`;
+      statusBanner.classList.add("hidden");
+      banner.classList.remove("hidden");
+
+      pBar.style.width = "20%";
+      pPercent.textContent = "20%";
+      pTitle.textContent = "Extracting text and documents...";
+      pDetail.textContent = `Reading ${accumulatedResumeFiles.length} candidate resumes and ${accumulatedJdFile.name}...`;
+
+      const formData = new FormData();
+      formData.append("jd_file", accumulatedJdFile);
+      for (let i = 0; i < accumulatedResumeFiles.length; i++) {
+        formData.append("resume_files", accumulatedResumeFiles[i]);
+      }
+
+      setTimeout(() => {
+        if (btn.disabled) {
+          pBar.style.width = "55%";
+          pPercent.textContent = "55%";
+          pTitle.textContent = "Evaluating candidates across 10 metrics...";
+          pDetail.textContent = `Running strict scoring on skills, seniority, and quantifiable impact...`;
+        }
+      }, 1800);
+
+      setTimeout(() => {
+        if (btn.disabled) {
+          pBar.style.width = "85%";
+          pPercent.textContent = "85%";
+          pTitle.textContent = "Finalizing composite ranking & dossiers...";
+        }
+      }, 3800);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/shortlist`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${AUTH_TOKEN}` },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Server error");
+        }
+
+        const data = await res.json();
+        activeCandidates = data.candidates;
+
+        pBar.style.width = "100%";
+        pPercent.textContent = "100%";
+        pTitle.textContent = "Completed!";
+        pDetail.textContent = `Successfully evaluated ${activeCandidates.length} candidate profiles.`;
+
+        setTimeout(() => {
+          banner.classList.add("hidden");
+          document.getElementById("statusTitle").textContent = "Assessment Finished Successfully";
+          document.getElementById("statusSubtitle").textContent = `Evaluated ${activeCandidates.length} resumes against ${accumulatedJdFile.name}. Showing top ${Math.min(selectedTopN, activeCandidates.length)} candidates.`;
+          statusBanner.classList.remove("hidden");
+        }, 500);
+
+        recalculateRankings();
+      } catch (err) {
+        alert("Pipeline failed: " + err.message);
+        banner.classList.add("hidden");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg> Run AI Assessment`;
+      }
+    }
+
+    function recalculateRankings() {
+      if (!activeCandidates.length) return;
+
+      const totalWeight = Object.values(currentWeights).reduce((a, b) => a + b, 0) || 1;
+
+      activeCandidates.forEach(cand => {
+        let weightedSum = 0;
+        cand.metrics.forEach(m => {
+          const weight = currentWeights[m.name] || 0;
+          weightedSum += (m.score * weight);
+        });
+        cand.live_score = weightedSum / totalWeight;
+      });
+
+      activeCandidates.sort((a, b) => b.live_score - a.live_score);
+      renderCards();
+    }
+
+    function renderCards() {
+      const container = document.getElementById("resultsList");
+      container.innerHTML = "";
+      
+      const visibleCandidates = activeCandidates.slice(0, selectedTopN);
+      document.getElementById("candidateCount").textContent = `${activeCandidates.length} evaluated (Showing Top ${visibleCandidates.length})`;
+
+      visibleCandidates.forEach((cand, idx) => {
+        const score = parseFloat(cand.live_score.toFixed(1));
+        const theme = getScoreTheme(score);
+        const isOpen = (idx === 0) ? "open" : "";
+
+        const details = document.createElement("details");
+        details.className = "bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-sm overflow-hidden transition-all duration-200";
+        if (isOpen) details.setAttribute("open", "");
+
+        details.innerHTML = `
+          <!-- Accordion Summary -->
+          <summary class="p-5 cursor-pointer flex items-center justify-between select-none hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+            <div class="flex items-center gap-3.5">
+              <div class="w-9 h-9 rounded-full ${theme.badgeBg} flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                #${idx + 1}
+              </div>
+              <div>
+                <h4 class="font-bold text-base text-slate-900 dark:text-white tracking-tight">${cand.candidate_name}</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Score: <span class="${theme.text} font-bold">${score}</span> / 100</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="event.stopPropagation(); openChat('${cand.candidate_id}', '${cand.candidate_name.replace(/'/g, "\'")}')" class="bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                <svg class="w-3.5 h-3.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg> Chat
+              </button>
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white">
+                <svg class="w-4 h-4 arrow-icon transition-transform duration-200 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+            </div>
+          </summary>
+
+          <!-- Expanded Body -->
+          <div class="px-6 pb-6 pt-3 border-t border-slate-100 dark:border-slate-700/50 space-y-5 text-xs text-slate-700 dark:text-slate-300">
+            
+            <!-- Strengths -->
+            <div class="space-y-1.5">
+              <h5 class="font-bold text-slate-900 dark:text-white text-sm">Strengths:</h5>
+              <div class="space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+                ${cand.strengths && cand.strengths.length ? cand.strengths.map(s => `
+                  <div class="flex items-start gap-2">
+                    <span class="text-slate-400 dark:text-slate-400 font-bold">&#9670;</span>
+                    <span>${s}</span>
+                  </div>
+                `).join('') : '<span class="text-slate-400 italic">No specific strengths listed.</span>'}
+              </div>
+            </div>
+
+            <!-- Risks / Gaps -->
+            <div class="space-y-1.5">
+              <h5 class="font-bold text-slate-900 dark:text-white text-sm">Risks / Gaps:</h5>
+              <div class="space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+                ${cand.red_flags && cand.red_flags.length ? cand.red_flags.map(f => `
+                  <div class="flex items-start gap-2">
+                    <span class="text-slate-400 dark:text-slate-400 font-bold">&#9670;</span>
+                    <span>${f}</span>
+                  </div>
+                `).join('') : '<span class="text-slate-400 italic">No major risks or gaps identified.</span>'}
+              </div>
+            </div>
+
+            <!-- Metric Breakdown (Sorted Descending by Score) -->
+            <div class="space-y-2.5 pt-1">
+              <h5 class="font-bold text-slate-900 dark:text-white text-sm">Metric Breakdown:</h5>
+              <div class="space-y-2 text-slate-700 dark:text-slate-300 max-w-2xl">
+                ${[...cand.metrics].sort((a, b) => b.score - a.score).map(m => {
+                  const mScore = Math.round(m.score);
+                  const mTheme = getScoreTheme(mScore);
+                  return `
+                    <div class="flex items-center justify-between gap-4">
+                      <span class="w-48 shrink-0 text-slate-700 dark:text-slate-300 text-xs font-normal">${m.name}</span>
+                      <div class="flex-1 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div class="${mTheme.bar} h-full rounded-full transition-all duration-300" style="width: ${mScore}%"></div>
+                      </div>
+                      <span class="w-8 text-right font-medium text-xs ${mTheme.text}">${mScore}%</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+          </div>
+        `;
+        container.appendChild(details);
+      });
+    }
+
+    function openChat(candId, candName) {
+      currentChatCandidateId = candId;
+      document.getElementById("chatCandidateName").textContent = candName;
+      document.getElementById("chatMessages").innerHTML = `
+        <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-600/50 leading-relaxed text-slate-700 dark:text-slate-300">
+          Inquire about <strong>${candName}</strong>'s background, qualifications, or alignment against the job description.
+        </div>
+      `;
+      document.getElementById("chatDrawer").classList.remove("translate-x-full");
+    }
+
+    function closeChat() {
+      document.getElementById("chatDrawer").classList.add("translate-x-full");
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text || !currentChatCandidateId) return;
+
+      const msgs = document.getElementById("chatMessages");
+      msgs.innerHTML += `
+        <div class="text-right">
+          <div class="inline-block bg-indigo-600 text-white p-2.5 rounded-xl rounded-br-none text-xs max-w-[80%] text-left">${text}</div>
+        </div>
+      `;
+      input.value = "";
+      msgs.scrollTop = msgs.scrollHeight;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/candidate/chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${AUTH_TOKEN}`
+          },
+          body: JSON.stringify({ candidate_id: currentChatCandidateId, message: text })
+        });
+        const data = await res.json();
+        msgs.innerHTML += `
+          <div class="text-left">
+            <div class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 p-2.5 rounded-xl rounded-bl-none text-xs max-w-[85%] leading-relaxed border border-slate-200 dark:border-transparent">${data.reply}</div>
+          </div>
+        `;
+        msgs.scrollTop = msgs.scrollHeight;
+      } catch (err) {
+        alert("Chat error: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
