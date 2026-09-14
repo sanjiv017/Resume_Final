@@ -31,6 +31,7 @@
       transform: rotate(180deg);
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
 
@@ -738,11 +739,11 @@
               </div>
             </div>
 
-            <!-- Metric Breakdown (Sorted Descending by Score) -->
+            <!-- Metric Breakdown (Sorted by Weight Metric Order) -->
             <div class="space-y-2.5 pt-1">
               <h5 class="font-bold text-slate-900 dark:text-white text-sm">Metric Breakdown:</h5>
               <div class="space-y-2 text-slate-700 dark:text-slate-300 max-w-2xl">
-                ${[...cand.metrics].sort((a, b) => b.score - a.score).map(m => {
+                ${[...cand.metrics].sort((a, b) => (currentWeights[b.name] ?? 0) - (currentWeights[a.name] ?? 0)).map(m => {
                   const mScore = Math.round(m.score);
                   const mTheme = getScoreTheme(mScore);
                   return `
@@ -785,12 +786,30 @@
       if (!text || !currentChatCandidateId) return;
 
       const msgs = document.getElementById("chatMessages");
-      msgs.innerHTML += `
-        <div class="text-right">
-          <div class="inline-block bg-indigo-600 text-white p-2.5 rounded-xl rounded-br-none text-xs max-w-[80%] text-left">${text}</div>
+      
+      // User message bubble
+      const userBubble = document.createElement("div");
+      userBubble.className = "text-right";
+      userBubble.innerHTML = `
+        <div class="inline-block bg-indigo-600 text-white p-2.5 rounded-xl rounded-br-none text-xs max-w-[80%] text-left whitespace-pre-wrap">${text}</div>
+      `;
+      msgs.appendChild(userBubble);
+
+      input.value = "";
+      msgs.scrollTop = msgs.scrollHeight;
+
+      // Typing loader placeholder
+      const loaderId = "loader_" + Date.now();
+      const loaderDiv = document.createElement("div");
+      loaderDiv.id = loaderId;
+      loaderDiv.className = "text-left";
+      loaderDiv.innerHTML = `
+        <div class="inline-block bg-slate-100 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400 p-2.5 rounded-xl rounded-bl-none text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-600">
+          <svg class="w-3.5 h-3.5 animate-spin inline-block text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          Checking candidate dossier...
         </div>
       `;
-      input.value = "";
+      msgs.appendChild(loaderDiv);
       msgs.scrollTop = msgs.scrollHeight;
 
       try {
@@ -802,15 +821,42 @@
           },
           body: JSON.stringify({ candidate_id: currentChatCandidateId, message: text })
         });
+        
+        // Remove loader
+        const l = document.getElementById(loaderId);
+        if (l) l.remove();
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Server error");
+        }
+
         const data = await res.json();
-        msgs.innerHTML += `
-          <div class="text-left">
-            <div class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 p-2.5 rounded-xl rounded-bl-none text-xs max-w-[85%] leading-relaxed border border-slate-200 dark:border-transparent">${data.reply}</div>
+        const formattedReply = (typeof marked !== "undefined" && marked.parse) 
+          ? marked.parse(data.reply) 
+          : data.reply.replace(/\n/g, "<br/>");
+
+        const assistantBubble = document.createElement("div");
+        assistantBubble.className = "text-left";
+        assistantBubble.innerHTML = `
+          <div class="inline-block bg-slate-100 dark:bg-slate-700/90 text-slate-800 dark:text-slate-100 p-3 rounded-xl rounded-bl-none text-xs max-w-[90%] leading-relaxed border border-slate-200 dark:border-slate-600 shadow-sm [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:my-1.5 [&>ol]:list-decimal [&>ol]:pl-4 [&>p]:mb-1.5 [&>p:last-child]:mb-0 [&>strong]:text-indigo-600 dark:[&>strong]:text-indigo-300">
+            ${formattedReply}
           </div>
         `;
+        msgs.appendChild(assistantBubble);
         msgs.scrollTop = msgs.scrollHeight;
       } catch (err) {
-        alert("Chat error: " + err.message);
+        const l = document.getElementById(loaderId);
+        if (l) l.remove();
+        const errorBubble = document.createElement("div");
+        errorBubble.className = "text-left";
+        errorBubble.innerHTML = `
+          <div class="inline-block bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl rounded-bl-none text-xs border border-rose-200 dark:border-rose-800">
+            Error: ${err.message}
+          </div>
+        `;
+        msgs.appendChild(errorBubble);
+        msgs.scrollTop = msgs.scrollHeight;
       }
     }
   </script>
