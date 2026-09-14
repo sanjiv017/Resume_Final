@@ -21,7 +21,7 @@ app = FastAPI(title="TalentFilter Pro Engine")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -256,7 +256,7 @@ async def chat_with_candidate(chat_req: ChatMessage, token: str = Depends(verify
 
     CRITICAL RULES (ANTI-EXAGGERATION & STRUCTURE):
     1. Don't Exaggeration & Strict Grounding:
-       - State only factual details in short by understanding context. No need to write exactly in the docs.
+       - State only factual details in short by understanding context. No need to write exactly as in the docs.
        - NEVER inflate seniority, skill depth, or years of experience.
        - If a skill, tool, company, or domain is not explicitly documented, clearly state: "Not mentioned in the resume."
     2. Structured Format:
