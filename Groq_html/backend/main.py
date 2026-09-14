@@ -65,20 +65,86 @@ class ChatMessage(BaseModel):
 class TailorResumeRequest(BaseModel):
     candidate_id: str
 
+import io
+import re
+import unicodedata
+from docx import Document
+import pdfplumber
+
+def clean_text_for_llm(raw_text: str) -> str:
+    """
+    Standardizes and cleans text extracted from PDF, DOCX, or TXT
+    to eliminate garbage tokens and optimize token efficiency for LLMs.
+    """
+    if not raw_text:
+        return ""
+
+    # 1. Normalize Unicode (resolves ligatures like 'ﬁ' -> 'fi', curly quotes, non-breaking spaces)
+    text = unicodedata.normalize("NFKC", raw_text)
+
+    # 2. Remove CID and glyph error encodings common in PDF extraction (e.g., (cid:120))
+    text = re.sub(r"\(cid:\d+\)", " ", text)
+
+    # 3. Fix hyphenated line breaks (e.g., "trans- \n formation" -> "transformation")
+    text = re.sub(r"(\w+)-\s*\n\s*(\w+)", r"\1\2", text)
+
+    # 4. Standardize diverse bullet point characters to a uniform symbol (•)
+    text = re.sub(r"[\u2022\u2023\u25E6\u2043\u2219\u25CB\u25CF\u25AA\u25AB\u25C6\u25C7\u25A0\u25A1▪►*–—]\s*", "• ", text)
+
+    # 5. Remove non-printable / control characters (keep standard newlines and tabs)
+    text = re.sub(r"[^\x20-\x7E\n\t•]", " ", text)
+
+    # 6. Normalize multiple horizontal spaces and tabs into a single space
+    text = re.sub(r"[ \t]+", " ", text)
+
+    # 7. Clean up whitespace per line
+    lines = [line.strip() for line in text.split("\n")]
+
+    # 8. Collapse 3+ consecutive newlines down to 2 (preserves paragraph hierarchy without wasting tokens)
+    clean_text = "\n".join(lines)
+    clean_text = re.sub(r"\n{3,}", "\n\n", clean_text)
+
+    return clean_text.strip()
+
+
 def extract_text(file_bytes: bytes, filename: str) -> str:
     name = filename.lower()
+    raw_text = ""
+
     try:
         if name.endswith(".docx"):
             doc = Document(io.BytesIO(file_bytes))
-            return "\n".join([p.text for p in doc.paragraphs if p.text])
+            # Extract paragraphs and table contents (often missed in DOCX resumes)
+            para_texts = [p.text for p in doc.paragraphs if p.text]
+            table_texts = [
+                " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                for table in doc.tables
+                for row in table.rows
+            ]
+            raw_text = "\n".join(para_texts + table_texts)
+
         elif name.endswith(".pdf"):
             with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-                return "\n".join([page.extract_text() or "" for page in pdf.pages])
+                page_texts = []
+                for page in pdf.pages:
+                    # layout=False avoids spacing artifacts from two-column layouts
+                    page_str = page.extract_text(layout=False, x_tolerance=2, y_tolerance=2) or ""
+                    page_texts.append(page_str)
+                raw_text = "\n".join(page_texts)
+
         elif name.endswith(".txt"):
-            return file_bytes.decode("utf-8", errors="ignore")
+            raw_text = file_bytes.decode("utf-8", errors="ignore")
+
     except Exception as e:
         print(f"Extraction error ({filename}): {e}")
-    return ""
+        return ""
+
+    # Run the raw text through the cleaner
+    return clean_text_for_llm(raw_text)
+
+@app.get("/")
+def health_check():
+    return {"status": "backend operational", "model": GROQ_MODEL}
 
 @app.post("/api/auth/login")
 def login(auth: AuthRequest):
@@ -87,6 +153,7 @@ def login(auth: AuthRequest):
     raise HTTPException(status_code=401, detail="Invalid username or password.")
 
 @app.post("/api/shortlist")
+@app.post("/shortlist")
 async def shortlist_candidates(
     jd_file: UploadFile = File(...),
     resume_files: List[UploadFile] = File(...),
@@ -110,16 +177,16 @@ async def shortlist_candidates(
 
         prompt = f"""
         You are an expert HR talent evaluation engine. Score this resume against the Job Description across 10 metrics (0-100 each):
-        1. Hard Skill Alignment
-        2. Experience Relevance
-        3. Seniority & Scope
-        4. Educational Qualification
-        5. Soft Skills & Leadership
-        6. Quantifiable Impact
-        7. Tool & Platform Stack
-        8. Career Continuity
-        9. Domain Experience
-        10. Communication Quality
+        1. Hard Skill Alignment : Direct match and semantic overlap of core programming languages, tools, or domain-specific certifications.
+        2. Experience Relevance : Depth of hands-on experience in identical or closely adjacent job roles and industry verticals.
+        3. Seniority & Scope    : Alignment of past titles, team sizes managed, or technical scope compared to JD seniority levels.
+        4. Educational Qualification : Degree level, specialization field, and accreditation against minimum JD requirements or check if college is IIT or NIT or IIM.
+        5. Soft Skills & Leadership : Evidence of cross-functional communication, mentoring, problem-solving, and ownership.
+        6. Quantifiable Impact      : Presence of metric-backed achievements (e.g., "$1.2M revenue generated," "reduced latency by 35%").
+        7. Tool & Platform Stack    : Match on secondary infrastructure, libraries, APIs, or vendor tooling specified in the JD.
+        8. Career Continuity        : Reasonable role progression, clear promotion trajectory, and stability.
+        9. Domain Experience        : Prior direct context in the company's specific vertical (e.g., FinTech, SaaS, BioTech).
+        10. Communication Quality   : Clarity, formatting rigor, structural conciseness, and absence of typographical errors.
 
         Respond ONLY with a JSON object strictly matching this schema:
         {{
@@ -184,14 +251,25 @@ async def chat_with_candidate(chat_req: ChatMessage, token: str = Depends(verify
         raise HTTPException(status_code=404, detail="Candidate session not found.")
 
     system_prompt = f"""
-    You are an AI recruiting co-pilot interrogating a specific candidate's resume for an HR manager.
-    Answer questions truthfully based ONLY on the Candidate Resume and Job Description.
-    If the resume does not mention something, explicitly state that it is not documented.
+    You are an objective, precise technical talent assessor assisting an HR recruiter.
+    Answer questions strictly, truthfully, and objectively based ONLY on the Candidate Resume and Job Description below.
 
-    IMPORTANT FORMATTING RULES:
-    - Use clean bullet points and concise paragraphs.
-    - DO NOT format answers as Markdown tables or ASCII grids.
-    - Keep output easy to read in a narrow mobile chat drawer.
+    CRITICAL RULES (ANTI-EXAGGERATION & STRUCTURE):
+    1. Don't Exaggeration & Strict Grounding:
+       - State only factual details in short by understanding context. No need to write exactly in the docs.
+       - NEVER inflate seniority, skill depth, or years of experience.
+       - If a skill, tool, company, or domain is not explicitly documented, clearly state: "Not mentioned in the resume."
+    2. Structured Format:
+       - Start immediately with a 1-sentence direct answer.
+       - Use clean, concise bullet points (•) for itemized details.
+       - Use inline bold text for key terms, technologies, and dates.
+    3. FORBIDDEN FORMATS:
+       - DO NOT output Markdown tables, pipes ('|'), dashes ('---'), or ASCII grid matrices.
+       - DO NOT use conversational filler like "Sure!", "Here is a breakdown", or "Based on my analysis".
+    4. Keep the total response concise, scannable, and under 150 words.
+    5. Follow this rule strictly and on first priority; Keep each answer 1 or 2 line max until user asks answers in detail 
+       For example: Query: Years of experience Answer: 4 years , Query: Domain knowledge Answer: FinTech, Pharma etc. You have to
+       answer like this.
 
     [JOB DESCRIPTION]
     {cand['jd_text'][:4000]}
@@ -206,15 +284,14 @@ async def chat_with_candidate(chat_req: ChatMessage, token: str = Depends(verify
     completion = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=messages,
-        temperature=0.3,
-        max_tokens=600
+        temperature=0.15,
+        max_tokens=450
     )
 
     reply = completion.choices[0].message.content
     cand["history"].append({"role": "assistant", "content": reply})
     return {"reply": reply}
 
-# --- NEW FEATURE: Generate Standard Downloadable Tailored Resume ---
 @app.post("/api/candidate/tailor-resume")
 async def generate_tailored_resume(req: TailorResumeRequest, token: str = Depends(verify_token)):
     if not client:
@@ -253,7 +330,6 @@ async def generate_tailored_resume(req: TailorResumeRequest, token: str = Depend
         )
         content = completion.choices[0].message.content.strip()
         
-        # Extract HTML code if fenced in markdown
         html_match = re.search(r"```(?:html)?\s*(<!DOCTYPE html>.*?</html>)\s*```", content, re.DOTALL | re.IGNORECASE)
         if html_match:
             clean_html = html_match.group(1)
